@@ -1,0 +1,71 @@
+package com.latysh.bank.transactionservice.service.impl;
+
+import com.latysh.bank.transactionservice.entity.BankTransaction;
+import com.latysh.bank.transactionservice.entity.ExpenseCategory;
+import com.latysh.bank.transactionservice.repository.AccountCategoryLockRepository;
+import com.latysh.bank.transactionservice.repository.BankTransactionRepository;
+import com.latysh.bank.transactionservice.repository.ExpenseLimitRepository;
+import com.latysh.bank.transactionservice.rq.IncomingTransactionRq;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
+
+import java.math.BigDecimal;
+import java.time.OffsetDateTime;
+import java.time.ZonedDateTime;
+
+@Service
+@RequiredArgsConstructor
+public class BankTransactionService {
+    private static final BigDecimal DEFAULT_LIMIT = new BigDecimal("1000.00");
+
+    private final BankTransactionRepository bankTransactionRepository;
+    private final ExpenseLimitRepository expenseLimitRepository;
+    private final AccountCategoryLockRepository accountCategoryLockRepository;
+
+    @Transactional
+    public long acceptTransaction(IncomingTransactionRq request, BigDecimal sumUsd) {
+        ExpenseCategory category = request.expenseCategory();
+
+        accountCategoryLockRepository.insertIfAbsent(request.accountFrom(), category.name().toLowerCase());
+        accountCategoryLockRepository.lock(request.accountFrom(), category);
+
+        // Нахождение лимита по accountFrom, категории и дате,
+        // которая меньше ли бо равна дате транзакции
+        var limit = expenseLimitRepository.findFirstByAccountFromAndExpenseCategoryAndLimitDatetimeLessThanEqualOrderByLimitDatetimeDesc(
+            request.accountFrom(), category, request.datetime()
+        ).orElse(null);
+
+        BigDecimal limitSum = limit == null ? DEFAULT_LIMIT : limit.getLimitSum();
+
+        ZonedDateTime zoned = request.datetime().atZoneSameInstant(IntegrationTransactionServiceImpl.MONTH_ZONE);
+
+        OffsetDateTime monthStart = zoned.withDayOfMonth(1).toLocalDate()
+            .atStartOfDay(IntegrationTransactionServiceImpl.MONTH_ZONE)
+            .toOffsetDateTime();
+
+        OffsetDateTime monthEnd = monthStart.plusMonths(1);
+
+        BigDecimal totalSum = bankTransactionRepository.sumUsd(
+            request.accountFrom(), category, monthStart, monthEnd);
+
+        if (totalSum == null) totalSum = BigDecimal.ZERO;
+
+        boolean limitExceeded = limitSum.subtract(totalSum)
+            .subtract(sumUsd).compareTo(BigDecimal.ZERO) < 0;
+
+        BankTransaction saved = bankTransactionRepository.save(new BankTransaction(
+            request.accountFrom(),
+            request.accountTo(),
+            request.currencyShortname(),
+            request.sum(),
+            category,
+            request.datetime(),
+            sumUsd,
+            limitExceeded,
+            limit
+        ));
+
+        return saved.getId();
+    }
+}
