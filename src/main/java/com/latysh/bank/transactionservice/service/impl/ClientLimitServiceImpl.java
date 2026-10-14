@@ -10,6 +10,7 @@ import com.latysh.bank.transactionservice.rs.ExceededTransactionRs;
 import com.latysh.bank.transactionservice.rs.LimitRs;
 import com.latysh.bank.transactionservice.service.ClientLimitService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -18,6 +19,7 @@ import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ClientLimitServiceImpl implements ClientLimitService {
@@ -37,6 +39,8 @@ public class ClientLimitServiceImpl implements ClientLimitService {
         );
 
         var savedLimit = expenseLimitRepository.saveAndFlush(limit);
+        log.info("Created expense limit {} for account {} category {} sum {}",
+            savedLimit.getId(), savedLimit.getAccountFrom(), savedLimit.getExpenseCategory(), savedLimit.getLimitSum());
 
         return toResponse(savedLimit);
     }
@@ -44,6 +48,7 @@ public class ClientLimitServiceImpl implements ClientLimitService {
     @Transactional
     @Override
     public List<LimitRs> findAllLimitsByAccountFrom(String accountFrom) {
+        log.debug("Loading expense limits for account {}", accountFrom);
         return expenseLimitRepository.findAllByAccountFromOrderByLimitDatetimeDesc(accountFrom).stream()
             .map(this::toResponse)
             .toList();
@@ -51,6 +56,7 @@ public class ClientLimitServiceImpl implements ClientLimitService {
 
     @Override
     public List<ExceededTransactionRs> findLimitExceededTransactionsByAccountFrom(String accountFrom) {
+        log.debug("Loading limit-exceeded transactions for account {}", accountFrom);
         return bankTransactionRepository.findExceededTransactionsByAccountFrom(accountFrom).stream()
             .map(t -> toExceeded(t)).toList();
     }

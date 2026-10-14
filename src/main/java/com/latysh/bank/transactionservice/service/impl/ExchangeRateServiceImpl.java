@@ -8,6 +8,7 @@ import com.latysh.bank.transactionservice.rates.ExchangeRateClient;
 import com.latysh.bank.transactionservice.repository.ExchangeRateRepository;
 import com.latysh.bank.transactionservice.service.ExchangeRateService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 
@@ -15,6 +16,7 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ExchangeRateServiceImpl implements ExchangeRateService {
@@ -47,6 +49,8 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
                 } catch (Exception unavailable) {
                     // API не отдал курс этого дня (выходной или ошибка) — берём последнее закрытие.
                     // В кэш его не кладём: это не курс запрошенного дня, следующий вызов снова спросит API.
+                    log.warn("Exchange rate for {} on {} is unavailable, using the latest stored close",
+                        currency, day, unavailable);
                     return exchangeRateRepository
                         .findFirstByBaseAndQuoteAndRateDateLessThanOrderByRateDateDesc(currency, USD, day)
                         .map(ExchangeRate::getClose)
@@ -56,11 +60,13 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
     }
 
     private BigDecimal fetchAndStore(String currency, LocalDate day) throws ExchangeRateUnavailableException {
+        log.info("Fetching exchange rate for {}/USD on {}", currency, day);
         BigDecimal close = client.getExchangeRates(currency, USD, day)
             .orElseThrow(() -> new ExchangeRateUnavailableException(currency, day));
         try {
             exchangeRateRepository.saveAndFlush(new ExchangeRate(currency, USD, day, close));
         } catch (DataIntegrityViolationException alreadyStored) {
+            log.debug("Exchange rate for {}/USD on {} was already stored", currency, day);
             close = exchangeRateRepository.findByBaseAndQuoteAndRateDate(currency, USD, day)
                 .orElseThrow(RateNotFoundException::new)
                 .getClose();

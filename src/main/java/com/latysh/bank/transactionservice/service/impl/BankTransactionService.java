@@ -7,6 +7,7 @@ import com.latysh.bank.transactionservice.repository.BankTransactionRepository;
 import com.latysh.bank.transactionservice.repository.ExpenseLimitRepository;
 import com.latysh.bank.transactionservice.rq.IncomingTransactionRq;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -14,6 +15,7 @@ import java.math.BigDecimal;
 import java.time.OffsetDateTime;
 import java.time.ZonedDateTime;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class BankTransactionService {
@@ -37,6 +39,10 @@ public class BankTransactionService {
         ).orElse(null);
 
         BigDecimal limitSum = limit == null ? DEFAULT_LIMIT : limit.getLimitSum();
+        if (limit == null) {
+            log.debug("No expense limit for account {} category {}, using default {}",
+                request.accountFrom(), category, DEFAULT_LIMIT);
+        }
 
         ZonedDateTime zoned = request.datetime().atZoneSameInstant(IntegrationTransactionServiceImpl.MONTH_ZONE);
 
@@ -66,6 +72,8 @@ public class BankTransactionService {
             limit
         ));
 
+        log.info("Stored transaction {} for account {} category {}, limit exceeded={}",
+            saved.getId(), request.accountFrom(), category, limitExceeded);
         return saved.getId();
     }
 }
