@@ -6,9 +6,11 @@ import com.latysh.bank.transactionservice.repository.AccountCategoryLockReposito
 import com.latysh.bank.transactionservice.repository.BankTransactionRepository;
 import com.latysh.bank.transactionservice.repository.ExpenseLimitRepository;
 import com.latysh.bank.transactionservice.rq.IncomingTransactionRq;
+import com.latysh.bank.transactionservice.service.BankTransactionService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -18,14 +20,15 @@ import java.time.ZonedDateTime;
 @Slf4j
 @Service
 @RequiredArgsConstructor
-public class BankTransactionService {
+public class BankTransactionServiceImpl implements BankTransactionService {
     private static final BigDecimal DEFAULT_LIMIT = new BigDecimal("1000.00");
 
     private final BankTransactionRepository bankTransactionRepository;
     private final ExpenseLimitRepository expenseLimitRepository;
     private final AccountCategoryLockRepository accountCategoryLockRepository;
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
+    @Override
     public long acceptTransaction(IncomingTransactionRq request, BigDecimal sumUsd) {
         ExpenseCategory category = request.expenseCategory();
 

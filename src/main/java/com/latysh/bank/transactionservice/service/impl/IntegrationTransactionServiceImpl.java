@@ -1,6 +1,7 @@
 package com.latysh.bank.transactionservice.service.impl;
 
 import com.latysh.bank.transactionservice.rq.IncomingTransactionRq;
+import com.latysh.bank.transactionservice.service.BankTransactionService;
 import com.latysh.bank.transactionservice.service.ExchangeRateService;
 import com.latysh.bank.transactionservice.service.IntegrationTransactionService;
 import lombok.RequiredArgsConstructor;

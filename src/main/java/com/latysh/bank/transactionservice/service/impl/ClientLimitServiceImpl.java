@@ -12,6 +12,7 @@ import com.latysh.bank.transactionservice.service.ClientLimitService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.math.BigDecimal;
@@ -28,7 +29,7 @@ public class ClientLimitServiceImpl implements ClientLimitService {
     private final BankTransactionRepository bankTransactionRepository;
     private final Clock clock;
 
-    @Transactional
+    @Transactional(isolation = Isolation.READ_COMMITTED)
     @Override
     public LimitRs createLimit(CreateLimitRq request) {
         var limit = new ExpenseLimit(
@@ -45,7 +46,7 @@ public class ClientLimitServiceImpl implements ClientLimitService {
         return toResponse(savedLimit);
     }
 
-    @Transactional
+    @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     @Override
     public List<LimitRs> findAllLimitsByAccountFrom(String accountFrom) {
         log.debug("Loading expense limits for account {}", accountFrom);

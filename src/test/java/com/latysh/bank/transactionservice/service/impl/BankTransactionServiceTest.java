@@ -36,7 +36,7 @@ public class BankTransactionServiceTest {
     AccountCategoryLockRepository accountCategoryLockRepository;
 
     @InjectMocks
-    BankTransactionService service;
+    BankTransactionServiceImpl service;
 
     @Test
     void savesTransactionWithoutExceedingLimit() {
