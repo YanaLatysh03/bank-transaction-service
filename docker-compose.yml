@@ -17,5 +17,22 @@ services:
     ports:
       - "6379:6379"
 
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: bank_transaction-app
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - SPRING_PROFILES_ACTIVE=prod
+      # Передаем параметры подключения к БД через переменные окружения, которые поймет Spring
+      - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bank_transaction
+      - SPRING_DATASOURCE_USERNAME=bank_transaction
+      - SPRING_DATASOURCE_PASSWORD=1234
+    depends_on:
+      - postgres
+
 volumes:
   bank_transaction_db_data:
