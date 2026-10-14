@@ -2,6 +2,7 @@ package com.latysh.bank.transactionservice.endtoend;
 
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
+import com.latysh.bank.transactionservice.DomainConstants;
 import com.latysh.bank.transactionservice.entity.ExpenseCategory;
 import com.latysh.bank.transactionservice.rq.CreateLimitRq;
 import com.latysh.bank.transactionservice.rq.IncomingTransactionRq;
@@ -39,7 +40,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 public class CaseOneApiTest {
     private static final String ACCOUNT = "0000000123";
     private static final String COUNTERPARTY = "9999999999";
-    private static final ZoneId MINSK = ZoneId.of("Europe/Minsk");
+    private static final ZoneId MINSK = DomainConstants.BUSINESS_ZONE;
     private static final AdjustableClock CLOCK = new AdjustableClock(MINSK);
 
     @Container

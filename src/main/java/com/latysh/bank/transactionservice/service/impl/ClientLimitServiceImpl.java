@@ -1,11 +1,11 @@
 package com.latysh.bank.transactionservice.service.impl;
 
+import com.latysh.bank.transactionservice.DomainConstants;
 import com.latysh.bank.transactionservice.entity.BankTransaction;
 import com.latysh.bank.transactionservice.entity.ExpenseLimit;
 import com.latysh.bank.transactionservice.repository.BankTransactionRepository;
 import com.latysh.bank.transactionservice.repository.ExpenseLimitRepository;
 import com.latysh.bank.transactionservice.rq.CreateLimitRq;
-import com.latysh.bank.transactionservice.rq.GetClientDataRq;
 import com.latysh.bank.transactionservice.rs.ExceededTransactionRs;
 import com.latysh.bank.transactionservice.rs.LimitRs;
 import com.latysh.bank.transactionservice.service.ClientLimitService;
@@ -15,7 +15,6 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Isolation;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.OffsetDateTime;
 import java.util.List;
@@ -48,7 +47,7 @@ public class ClientLimitServiceImpl implements ClientLimitService {
 
     @Transactional(readOnly = true, isolation = Isolation.READ_COMMITTED)
     @Override
-    public List<LimitRs> findAllLimitsByAccountFrom(String accountFrom) {
+    public List<LimitRs> findLimits(String accountFrom) {
         log.debug("Loading expense limits for account {}", accountFrom);
         return expenseLimitRepository.findAllByAccountFromOrderByLimitDatetimeDesc(accountFrom).stream()
             .map(this::toResponse)
@@ -56,12 +55,15 @@ public class ClientLimitServiceImpl implements ClientLimitService {
     }
 
     @Override
-    public List<ExceededTransactionRs> findLimitExceededTransactionsByAccountFrom(String accountFrom) {
+    public List<ExceededTransactionRs> findLimitExceededTransactions(String accountFrom) {
         log.debug("Loading limit-exceeded transactions for account {}", accountFrom);
         return bankTransactionRepository.findExceededTransactionsByAccountFrom(accountFrom).stream()
-            .map(t -> toExceeded(t)).toList();
+            .map(this::toExceededResponse).toList();
     }
 
+    /**
+     * Собирает ответ по сохранённому лимиту.
+     */
     private LimitRs toResponse(ExpenseLimit limit) {
         return new LimitRs(
             limit.getId(),
@@ -73,7 +75,12 @@ public class ClientLimitServiceImpl implements ClientLimitService {
         );
     }
 
-    private ExceededTransactionRs toExceeded(BankTransaction transaction) {
+    /**
+     * Собирает ответ по операции, превысившей лимит.
+     * Если у транзакции нет строки лимита, подставляет {@code DEFAULT_LIMIT} и {@code USD},
+     * а дату установления оставляет пустой.
+     */
+    private ExceededTransactionRs toExceededResponse(BankTransaction transaction) {
         ExpenseLimit limit = transaction.getExpenseLimit();
         return new ExceededTransactionRs(
             transaction.getAccountFrom(),
@@ -82,9 +89,9 @@ public class ClientLimitServiceImpl implements ClientLimitService {
             transaction.getSum(),
             transaction.getExpenseCategory(),
             transaction.getDatetime(),
-            limit == null ? new BigDecimal("1000.00") : limit.getLimitSum(),
+            limit == null ? DomainConstants.DEFAULT_LIMIT : limit.getLimitSum(),
             limit == null ? null : limit.getLimitDatetime(),
-            limit == null ? "USD" : limit.getCurrencyShortname()
+            limit == null ? DomainConstants.USD : limit.getCurrencyShortname()
         );
     }
 }

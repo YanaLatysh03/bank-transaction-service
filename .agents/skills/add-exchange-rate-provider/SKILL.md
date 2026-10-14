@@ -103,7 +103,7 @@ public class <Provider>Config {
 ### 4. Клиент
 
 `@Component`, конструктор через `@RequiredArgsConstructor`, единственный публичный метод —
-реализация `ExchangeRateClient#getExchangeRates(String base, String quote, LocalDate date)`.
+реализация `ExchangeRateClient#getRate(String base, String quote, LocalDate date)`.
 
 Инварианты контракта (почему — см. `ExchangeRateServiceImpl.usdPerUnit`):
 - **Никогда не бросает исключений** — недоступность/ошибка API это `Optional.empty()`,

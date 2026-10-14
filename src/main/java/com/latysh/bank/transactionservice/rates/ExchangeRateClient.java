@@ -5,5 +5,5 @@ import java.time.LocalDate;
 import java.util.Optional;
 
 public interface ExchangeRateClient {
-    Optional<BigDecimal> getExchangeRates(String base, String quote, LocalDate date);
+    Optional<BigDecimal> getRate(String base, String quote, LocalDate date);
 }

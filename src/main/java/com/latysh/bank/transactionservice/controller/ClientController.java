@@ -24,11 +24,11 @@ public class ClientController implements ClientApi {
 
     @Override
     public List<LimitRs> findLimits(String accountFrom) {
-        return clientLimitService.findAllLimitsByAccountFrom(accountFrom);
+        return clientLimitService.findLimits(accountFrom);
     }
 
     @Override
-    public List<ExceededTransactionRs> findExceededLimitTransactions(String accountFrom) {
-        return clientLimitService.findLimitExceededTransactionsByAccountFrom(accountFrom);
+    public List<ExceededTransactionRs> findLimitExceededTransactions(String accountFrom) {
+        return clientLimitService.findLimitExceededTransactions(accountFrom);
     }
 }

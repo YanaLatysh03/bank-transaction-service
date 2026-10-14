@@ -95,7 +95,7 @@ public class ExchangeRateServiceTest {
         LocalDate day = LocalDate.of(2022, 1, 2);
         when(exchangeRateRepository.findByBaseAndQuoteAndRateDate("KZT", "USD", day))
             .thenReturn(Optional.empty());
-        when(client.getExchangeRates("KZT", "USD", day))
+        when(client.getRate("KZT", "USD", day))
             .thenReturn(Optional.of(new BigDecimal("0.00230000")));
         // when
         BigDecimal sumUsd = service.toUsd("KZT", new BigDecimal("10000.00"), day);
@@ -119,7 +119,7 @@ public class ExchangeRateServiceTest {
         );
         when(exchangeRateRepository.findByBaseAndQuoteAndRateDate("KZT", "USD", day))
             .thenReturn(Optional.empty());
-        when(client.getExchangeRates("KZT", "USD", day))
+        when(client.getRate("KZT", "USD", day))
             .thenReturn(Optional.empty());
         when(exchangeRateRepository.findFirstByBaseAndQuoteAndRateDateLessThanOrderByRateDateDesc("KZT", "USD", day))
             .thenReturn(Optional.of(previous));
@@ -139,7 +139,7 @@ public class ExchangeRateServiceTest {
         LocalDate day = LocalDate.of(2022, 1, 2);
         when(exchangeRateRepository.findByBaseAndQuoteAndRateDate("KZT", "USD", day))
             .thenReturn(Optional.empty());
-        when(client.getExchangeRates("KZT", "USD", day))
+        when(client.getRate("KZT", "USD", day))
             .thenReturn(Optional.empty());
         when(exchangeRateRepository.findFirstByBaseAndQuoteAndRateDateLessThanOrderByRateDateDesc("KZT", "USD", day))
             .thenReturn(Optional.empty());
@@ -159,7 +159,7 @@ public class ExchangeRateServiceTest {
         when(exchangeRateRepository.findByBaseAndQuoteAndRateDate("KZT", "USD", day))
             .thenReturn(Optional.empty())
             .thenReturn(Optional.of(stored));
-        when(client.getExchangeRates("KZT", "USD", day))
+        when(client.getRate("KZT", "USD", day))
             .thenReturn(Optional.of(new BigDecimal("0.00230000")));
         when(exchangeRateRepository.saveAndFlush(any()))
             .thenThrow(new DataIntegrityViolationException("duplicate"));
@@ -178,7 +178,7 @@ public class ExchangeRateServiceTest {
         LocalDate day = LocalDate.of(2022, 1, 2);
         when(exchangeRateRepository.findByBaseAndQuoteAndRateDate("KZT", "USD", day))
             .thenReturn(Optional.empty());
-        when(client.getExchangeRates("KZT", "USD", day))
+        when(client.getRate("KZT", "USD", day))
             .thenReturn(Optional.of(new BigDecimal("0.00230000")));
         when(exchangeRateRepository.saveAndFlush(any()))
             .thenThrow(new DataIntegrityViolationException("duplicate"));

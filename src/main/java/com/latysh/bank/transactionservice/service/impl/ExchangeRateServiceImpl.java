@@ -1,5 +1,6 @@
 package com.latysh.bank.transactionservice.service.impl;
 
+import com.latysh.bank.transactionservice.DomainConstants;
 import com.latysh.bank.transactionservice.cache.ExchangeRateCache;
 import com.latysh.bank.transactionservice.entity.ExchangeRate;
 import com.latysh.bank.transactionservice.exception.ExchangeRateUnavailableException;
@@ -20,7 +21,6 @@ import java.time.LocalDate;
 @Service
 @RequiredArgsConstructor
 public class ExchangeRateServiceImpl implements ExchangeRateService {
-    private static final String USD = "USD";
     private final ExchangeRateRepository exchangeRateRepository;
     private final ExchangeRateClient client;
     private final ExchangeRateCache exchangeRateCache;
@@ -30,17 +30,27 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
         return sum.multiply(usdPerUnit(currency, day)).setScale(2, RoundingMode.HALF_UP);
     }
 
+    /**
+     * Возвращает курс USD за единицу валюты на день.
+     * Для USD это {@code 1}, без обращения к кэшу, базе и провайдеру.
+     */
     private BigDecimal usdPerUnit(String currency, LocalDate day) {
-        if (USD.equals(currency)) {
+        if (DomainConstants.USD.equals(currency)) {
             return BigDecimal.ONE;
         }
-        return exchangeRateCache.get(currency, USD, day)
+        return exchangeRateCache.get(currency, DomainConstants.USD, day)
             .orElseGet(() -> loadUsdPerUnit(currency, day));
     }
 
+    /**
+     * Ищет курс дня вне кэша: сначала строка в базе, затем провайдер.
+     * Если провайдер не отдал курс, берёт последнее закрытие строго раньше дня и в кэш его не пишет.
+     *
+     * @throws RateNotFoundException если нет ни курса дня, ни прошлого закрытия
+     */
     private BigDecimal loadUsdPerUnit(String currency, LocalDate day) {
-        return exchangeRateRepository.findByBaseAndQuoteAndRateDate(currency, USD, day)
-            .map(rate -> remember(currency, day, rate.getClose()))
+        return exchangeRateRepository.findByBaseAndQuoteAndRateDate(currency, DomainConstants.USD, day)
+            .map(rate -> cacheClose(currency, day, rate.getClose()))
             .orElseGet(() -> {
                 try {
                     return fetchAndStore(currency, day);
@@ -52,30 +62,40 @@ public class ExchangeRateServiceImpl implements ExchangeRateService {
                     log.warn("Exchange rate for {} on {} is unavailable, using the latest stored close",
                         currency, day, unavailable);
                     return exchangeRateRepository
-                        .findFirstByBaseAndQuoteAndRateDateLessThanOrderByRateDateDesc(currency, USD, day)
+                        .findFirstByBaseAndQuoteAndRateDateLessThanOrderByRateDateDesc(currency, DomainConstants.USD, day)
                         .map(ExchangeRate::getClose)
                         .orElseThrow(RateNotFoundException::new);
                 }
             });
     }
 
+    /**
+     * Запрашивает курс у провайдера и сохраняет его в базу.
+     * Если строка за этот день уже записана параллельным запросом, читает её.
+     *
+     * @throws ExchangeRateUnavailableException если провайдер не вернул положительный курс
+     * @throws RateNotFoundException если после такой гонки строка в базе не найдена
+     */
     private BigDecimal fetchAndStore(String currency, LocalDate day) throws ExchangeRateUnavailableException {
-        log.info("Fetching exchange rate for {}/USD on {}", currency, day);
-        BigDecimal close = client.getExchangeRates(currency, USD, day)
+        log.info("Fetching exchange rate for {}/{} on {}", currency, DomainConstants.USD, day);
+        BigDecimal close = client.getRate(currency, DomainConstants.USD, day)
             .orElseThrow(() -> new ExchangeRateUnavailableException(currency, day));
         try {
-            exchangeRateRepository.saveAndFlush(new ExchangeRate(currency, USD, day, close));
+            exchangeRateRepository.saveAndFlush(new ExchangeRate(currency, DomainConstants.USD, day, close));
         } catch (DataIntegrityViolationException alreadyStored) {
-            log.debug("Exchange rate for {}/USD on {} was already stored", currency, day);
-            close = exchangeRateRepository.findByBaseAndQuoteAndRateDate(currency, USD, day)
+            log.debug("Exchange rate for {}/{} on {} was already stored", currency, DomainConstants.USD, day);
+            close = exchangeRateRepository.findByBaseAndQuoteAndRateDate(currency, DomainConstants.USD, day)
                 .orElseThrow(RateNotFoundException::new)
                 .getClose();
         }
-        return remember(currency, day, close);
+        return cacheClose(currency, day, close);
     }
 
-    private BigDecimal remember(String currency, LocalDate day, BigDecimal close) {
-        exchangeRateCache.put(currency, USD, day, close);
+    /**
+     * Кладёт курс запрошенного дня в кэш и возвращает его.
+     */
+    private BigDecimal cacheClose(String currency, LocalDate day, BigDecimal close) {
+        exchangeRateCache.put(currency, DomainConstants.USD, day, close);
         return close;
     }
 }

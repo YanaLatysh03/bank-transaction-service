@@ -1,5 +1,6 @@
 package com.latysh.bank.transactionservice.entity;
 
+import com.latysh.bank.transactionservice.DomainConstants;
 import jakarta.persistence.*;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -39,6 +40,6 @@ public class ExpenseLimit {
         this.expenseCategory = expenseCategory;
         this.limitSum = limitSum;
         this.limitDatetime = limitDatetime;
-        this.currencyShortname = "USD";
+        this.currencyShortname = DomainConstants.USD;
     }
 }

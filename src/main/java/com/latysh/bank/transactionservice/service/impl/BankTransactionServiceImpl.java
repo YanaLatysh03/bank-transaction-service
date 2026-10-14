@@ -1,5 +1,6 @@
 package com.latysh.bank.transactionservice.service.impl;
 
+import com.latysh.bank.transactionservice.DomainConstants;
 import com.latysh.bank.transactionservice.entity.BankTransaction;
 import com.latysh.bank.transactionservice.entity.ExpenseCategory;
 import com.latysh.bank.transactionservice.repository.AccountCategoryLockRepository;
@@ -21,8 +22,6 @@ import java.time.ZonedDateTime;
 @Service
 @RequiredArgsConstructor
 public class BankTransactionServiceImpl implements BankTransactionService {
-    private static final BigDecimal DEFAULT_LIMIT = new BigDecimal("1000.00");
-
     private final BankTransactionRepository bankTransactionRepository;
     private final ExpenseLimitRepository expenseLimitRepository;
     private final AccountCategoryLockRepository accountCategoryLockRepository;
@@ -41,16 +40,16 @@ public class BankTransactionServiceImpl implements BankTransactionService {
             request.accountFrom(), category, request.datetime()
         ).orElse(null);
 
-        BigDecimal limitSum = limit == null ? DEFAULT_LIMIT : limit.getLimitSum();
+        BigDecimal limitSum = limit == null ? DomainConstants.DEFAULT_LIMIT : limit.getLimitSum();
         if (limit == null) {
             log.debug("No expense limit for account {} category {}, using default {}",
-                request.accountFrom(), category, DEFAULT_LIMIT);
+                request.accountFrom(), category, DomainConstants.DEFAULT_LIMIT);
         }
 
-        ZonedDateTime zoned = request.datetime().atZoneSameInstant(IntegrationTransactionServiceImpl.MONTH_ZONE);
+        ZonedDateTime zoned = request.datetime().atZoneSameInstant(DomainConstants.BUSINESS_ZONE);
 
         OffsetDateTime monthStart = zoned.withDayOfMonth(1).toLocalDate()
-            .atStartOfDay(IntegrationTransactionServiceImpl.MONTH_ZONE)
+            .atStartOfDay(DomainConstants.BUSINESS_ZONE)
             .toOffsetDateTime();
 
         OffsetDateTime monthEnd = monthStart.plusMonths(1);

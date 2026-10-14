@@ -1,5 +1,6 @@
 package com.latysh.bank.transactionservice.service.impl;
 
+import com.latysh.bank.transactionservice.DomainConstants;
 import com.latysh.bank.transactionservice.entity.BankTransaction;
 import com.latysh.bank.transactionservice.entity.ExpenseCategory;
 import com.latysh.bank.transactionservice.entity.ExpenseLimit;
@@ -24,7 +25,6 @@ import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.util.List;
 
 import static org.assertj.core.api.AssertionsForClassTypes.assertThat;
@@ -41,9 +41,7 @@ public class ClientLimitServiceTest {
 
     ClientLimitServiceImpl service;
 
-    Clock clock = Clock.system(
-        ZoneId.of("Europe/Minsk")
-    );
+    Clock clock = Clock.system(DomainConstants.BUSINESS_ZONE);
 
     @BeforeEach
     void setUp() {
@@ -115,7 +113,7 @@ public class ClientLimitServiceTest {
         when(expenseLimitRepository.findAllByAccountFromOrderByLimitDatetimeDesc(newer.getAccountFrom()))
             .thenReturn(List.of(newer, older));
         // when
-        List<LimitRs> response = service.findAllLimitsByAccountFrom(newer.getAccountFrom());
+        List<LimitRs> response = service.findLimits(newer.getAccountFrom());
         // then
         assertThat(response).isEqualTo(List.of(
             new LimitRs(2L, "0000000123", ExpenseCategory.PRODUCT, new BigDecimal("2000.00"), newerDatetime, "USD"),
@@ -147,7 +145,7 @@ public class ClientLimitServiceTest {
         when(bankTransactionRepository.findExceededTransactionsByAccountFrom(transaction.getAccountFrom())).thenReturn(List.of(transaction));
 
         // when
-        List<ExceededTransactionRs> response = service.findLimitExceededTransactionsByAccountFrom(transaction.getAccountFrom());
+        List<ExceededTransactionRs> response = service.findLimitExceededTransactions(transaction.getAccountFrom());
         // then
         assertThat(response).isEqualTo(List.of(new ExceededTransactionRs(
             "0000000123",
@@ -180,7 +178,7 @@ public class ClientLimitServiceTest {
 
         when(bankTransactionRepository.findExceededTransactionsByAccountFrom(transaction.getAccountFrom())).thenReturn(List.of(transaction));
         // when
-        List<ExceededTransactionRs> response = service.findLimitExceededTransactionsByAccountFrom(transaction.getAccountFrom());
+        List<ExceededTransactionRs> response = service.findLimitExceededTransactions(transaction.getAccountFrom());
         // then
         assertThat(response).isEqualTo(List.of(new ExceededTransactionRs(
             "0000000123",
@@ -189,9 +187,9 @@ public class ClientLimitServiceTest {
             new BigDecimal("10000.45"),
             ExpenseCategory.PRODUCT,
             datetime,
-            new BigDecimal("1000.00"),
+            DomainConstants.DEFAULT_LIMIT,
             null,
-            "USD"
+            DomainConstants.USD
         )));
     }
 }

@@ -45,5 +45,5 @@ public interface ClientApi {
     @ApiResponse(responseCode = "200", description = "Список превышений")
     @ApiResponse(responseCode = "400", description = "Тело запроса не прошло проверку", content = @Content)
     @GetMapping("transactions/{accountFrom}/exceeded")
-    List<ExceededTransactionRs> findExceededLimitTransactions(@PathVariable @Valid String accountFrom);
+    List<ExceededTransactionRs> findLimitExceededTransactions(@PathVariable @Valid String accountFrom);
 }

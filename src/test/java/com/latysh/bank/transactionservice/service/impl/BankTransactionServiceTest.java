@@ -1,5 +1,6 @@
 package com.latysh.bank.transactionservice.service.impl;
 
+import com.latysh.bank.transactionservice.DomainConstants;
 import com.latysh.bank.transactionservice.entity.BankTransaction;
 import com.latysh.bank.transactionservice.entity.ExpenseCategory;
 import com.latysh.bank.transactionservice.entity.ExpenseLimit;
@@ -61,7 +62,7 @@ public class BankTransactionServiceTest {
             "0000000123", ExpenseCategory.PRODUCT, datetime
         )).thenReturn(Optional.of(limit));
 
-        ZoneId zone = ZoneId.of("Europe/Minsk");
+        ZoneId zone = DomainConstants.BUSINESS_ZONE;
         OffsetDateTime monthStart = LocalDate.of(2022, 1, 1).atStartOfDay(zone).toOffsetDateTime();
 
         when(bankTransactionRepository.sumUsd(
@@ -112,7 +113,7 @@ public class BankTransactionServiceTest {
             "0000000123", ExpenseCategory.PRODUCT, datetime
         )).thenReturn(Optional.of(limit));
 
-        ZoneId zone = ZoneId.of("Europe/Minsk");
+        ZoneId zone = DomainConstants.BUSINESS_ZONE;
         OffsetDateTime monthStart = LocalDate.of(2022, 1, 1).atStartOfDay(zone).toOffsetDateTime();
         when(bankTransactionRepository.sumUsd(
             "0000000123", ExpenseCategory.PRODUCT, monthStart, monthStart.plusMonths(1)
@@ -159,7 +160,7 @@ public class BankTransactionServiceTest {
             "0000000123", ExpenseCategory.PRODUCT, datetime
         )).thenReturn(Optional.of(limit));
 
-        ZoneId zone = ZoneId.of("Europe/Minsk");
+        ZoneId zone = DomainConstants.BUSINESS_ZONE;
         OffsetDateTime monthStart = LocalDate.of(2022, 1, 1).atStartOfDay(zone).toOffsetDateTime();
 
         when(bankTransactionRepository.sumUsd(
@@ -198,7 +199,7 @@ public class BankTransactionServiceTest {
             "0000000123", ExpenseCategory.PRODUCT, datetime
         )).thenReturn(Optional.empty());
 
-        ZoneId zone = ZoneId.of("Europe/Minsk");
+        ZoneId zone = DomainConstants.BUSINESS_ZONE;
         OffsetDateTime monthStart = LocalDate.of(2022, 1, 1).atStartOfDay(zone).toOffsetDateTime();
         when(bankTransactionRepository.sumUsd(
             "0000000123", ExpenseCategory.PRODUCT, monthStart, monthStart.plusMonths(1)
@@ -238,7 +239,7 @@ public class BankTransactionServiceTest {
         when(expenseLimitRepository.findFirstByAccountFromAndExpenseCategoryAndLimitDatetimeLessThanEqualOrderByLimitDatetimeDesc(
             "0000000123", ExpenseCategory.PRODUCT, datetime
         )).thenReturn(Optional.of(limit));
-        ZoneId zone = ZoneId.of("Europe/Minsk");
+        ZoneId zone = DomainConstants.BUSINESS_ZONE;
         OffsetDateTime monthStart = LocalDate.of(2022, 1, 1).atStartOfDay(zone).toOffsetDateTime();
 
         when(bankTransactionRepository.sumUsd(
@@ -283,7 +284,7 @@ public class BankTransactionServiceTest {
             "0000000123", ExpenseCategory.PRODUCT, datetime
         )).thenReturn(Optional.of(limit));
 
-        ZoneId zone = ZoneId.of("Europe/Minsk");
+        ZoneId zone = DomainConstants.BUSINESS_ZONE;
         OffsetDateTime monthStart = LocalDate.of(2022, 2, 1).atStartOfDay(zone).toOffsetDateTime();
         OffsetDateTime monthEnd = monthStart.plusMonths(1);
 

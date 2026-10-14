@@ -69,7 +69,7 @@ gradle build            # сборка + тесты
 - Флаг `limit_exceeded` проставляется при приёме транзакции. Чтобы учёт лимита был
   консистентен при конкурентных записях, `BankTransactionService` берёт pessimistic-lock
   (`PESSIMISTIC_WRITE`) по паре (счёт, категория) через `account_category_lock`.
-- Бизнес-часовой пояс — `Europe/Minsk` (`MONTH_ZONE` в `IntegrationTransactionServiceImpl`).
+- Бизнес-часовой пояс — `Europe/Minsk` (`BUSINESS_ZONE` в `DomainConstants`). Лимит по умолчанию и валюта лимита — `DEFAULT_LIMIT` и `USD` там же.
 
 ### Провайдер курсов (`rates/`)
 

@@ -21,7 +21,7 @@ public class FrankfurterExchangeRateClient implements ExchangeRateClient {
     private final MeterRegistry meterRegistry;
 
     @Override
-    public Optional<BigDecimal> getExchangeRates(String base, String quote, LocalDate date) {
+    public Optional<BigDecimal> getRate(String base, String quote, LocalDate date) {
         Timer.Sample sample = Timer.start(meterRegistry);
         String outcome = "success";
         try {
