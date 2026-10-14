@@ -33,7 +33,7 @@ docker compose up -d postgres redis
 docker compose up -d --build
 ```
 
-Контейнер приложения получает URL PostgreSQL через `SPRING_DATASOURCE_URL` и ходит в сервис `postgres`. Порт на хосте — `8080`.
+Контейнер приложения получает URL PostgreSQL через `SPRING_DATASOURCE_URL` и ходит в сервис `postgres`. Хост Redis — `SPRING_DATA_REDIS_HOST=redis`, порт `6379`. Порт приложения на хосте — `8080`.
 
 Тесты (нужен запущенный Docker: Testcontainers сам поднимает `postgres:15` и `redis:7`):
 
@@ -45,9 +45,9 @@ docker compose up -d --build
 
 ## API
 
-Два REST API, без авторизации. Входящие тела проверяет Bean Validation. Невалидный запрос — HTTP 400. Если курс к USD не найден ни в базе, ни у провайдера, ни среди прошлых закрытий — HTTP 404.
+Два REST API, без авторизации. Входящие тела проверяет Bean Validation. Ошибки приходят одним форматом ProblemDetail (RFC 9457), `Content-Type: application/problem+json`: невалидный запрос — HTTP 400, у проверки полей есть массив `errors` (`field`, `message`). Если курс к USD не найден ни в базе, ни у провайдера, ни среди прошлых закрытий — HTTP 404 с теми же полями `title`, `status`, `detail`, `instance`. Поле `type` не передаётся: по RFC 9457 это `about:blank`.
 
-JSON — camelCase, как у Jackson по умолчанию. Категория в теле запроса — `PRODUCT` или `SERVICE`.
+JSON — snake_case, как в задании: `account_from`, `account_to`, `currency_shortname`, `expense_category`, `limit_sum`, `limit_datetime`, `limit_currency_shortname`. Категория — `product` или `service`.
 
 ### Интеграция: приём транзакции
 
@@ -57,11 +57,11 @@ JSON — camelCase, как у Jackson по умолчанию. Категори�
 curl -s -X POST http://localhost:8080/api/integration/transactions \
   -H 'Content-Type: application/json' \
   -d '{
-    "accountFrom": "0000000123",
-    "accountTo": "9999999999",
-    "currencyShortname": "KZT",
+    "account_from": "0000000123",
+    "account_to": "9999999999",
+    "currency_shortname": "KZT",
     "sum": 10000.45,
-    "expenseCategory": "PRODUCT",
+    "expense_category": "product",
     "datetime": "2022-01-30T00:00:00+06:00"
   }'
 ```
@@ -74,15 +74,15 @@ curl -s -X POST http://localhost:8080/api/integration/transactions \
 |---|---|---|
 | `POST` | `/api/client/limits` | Новый лимит, 201. Дату ставит сервер |
 | `GET` | `/api/client/limits/{accountFrom}` | История лимитов счёта |
-| `GET` | `/api/client/transactions/{accountFrom}/exceeded` | Операции с `limit_exceeded = true` и лимит, который действовал в момент операции: `limitSum`, `limitDatetime`, `limitCurrencyShortname` (`USD`) |
+| `GET` | `/api/client/transactions/{accountFrom}/exceeded` | Операции с `limit_exceeded = true` и лимит, который действовал в момент операции: `limit_sum`, `limit_datetime`, `limit_currency_shortname` (`USD`) |
 
 ```bash
 curl -s -X POST http://localhost:8080/api/client/limits \
   -H 'Content-Type: application/json' \
   -d '{
-    "accountFrom": "0000000123",
-    "expenseCategory": "PRODUCT",
-    "limitSum": 1000.00
+    "account_from": "0000000123",
+    "expense_category": "product",
+    "limit_sum": 1000.00
   }'
 ```
 
@@ -168,3 +168,8 @@ GitHub Actions: `.github/workflows/ci.yml`. На push в `main`/`master` и на
 Рецепт добавления провайдера курсов: `.agents/skills/add-exchange-rate-provider/SKILL.md`. Cursor и GitHub Copilot читают каталог `.agents/skills/`. Достаточно попросить агента добавить или заменить источник курсов (Frankfurter, `ExchangeRateClient`, другой rates API).
 
 Скилл указывает реальные классы пакета `rates/` (образец — набор `Frankfurter*`), ключи в `application.properties`, unit-тест на Mockito и сквозной тест с WireMock. Отдельно зафиксировано: второй бин `@Component implements ExchangeRateClient` роняет старт с `NoUniqueBeanDefinitionException`, пока в сервисе один клиент без квалификатора.
+
+
+### Оценка трудоемкости
+
+На данное тестовое задание для осознанного выполнения всех пунктов задания, в том числе и пунктов со звездочкой, нужно не менее 7 дней.

@@ -1,8 +1,12 @@
 package com.latysh.bank.transactionservice.exception;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.web.bind.annotation.ResponseStatus;
+/**
+ * Курса к USD нет ни за запрошенный день, ни среди прошлых закрытий.
+ * На API это 404 в формате ProblemDetail, см. {@link ApiExceptionHandler}.
+ */
+public class RateNotFoundException extends RuntimeException {
 
-@ResponseStatus(value = HttpStatus.NOT_FOUND, reason = "Курс не найден ни в БД, ни во внешнем API")
-public class RateNotFoundException extends RuntimeException{
+    public RateNotFoundException() {
+        super("Курс не найден ни в базе, ни у внешнего источника");
+    }
 }

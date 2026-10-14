@@ -3,7 +3,6 @@ package com.latysh.bank.transactionservice.entity;
 import jakarta.persistence.AttributeConverter;
 import jakarta.persistence.Converter;
 
-import java.util.Locale;
 
 @Converter(autoApply = true)
 public class ExpenseCategoryConverter implements AttributeConverter<ExpenseCategory, String> {

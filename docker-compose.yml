@@ -26,13 +26,15 @@ services:
     ports:
       - "8080:8080"
     environment:
-      - SPRING_PROFILES_ACTIVE=prod
       # Передаем параметры подключения к БД через переменные окружения, которые поймет Spring
       - SPRING_DATASOURCE_URL=jdbc:postgresql://postgres:5432/bank_transaction
       - SPRING_DATASOURCE_USERNAME=bank_transaction
       - SPRING_DATASOURCE_PASSWORD=1234
+      - SPRING_DATA_REDIS_HOST=redis
+      - SPRING_DATA_REDIS_PORT=6379
     depends_on:
       - postgres
+      - redis
 
 volumes:
   bank_transaction_db_data:

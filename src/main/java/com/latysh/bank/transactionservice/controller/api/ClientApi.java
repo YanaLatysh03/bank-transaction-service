@@ -6,10 +6,13 @@ import com.latysh.bank.transactionservice.rs.ExceededTransactionRs;
 import com.latysh.bank.transactionservice.rs.LimitRs;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ProblemDetail;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -24,7 +27,9 @@ public interface ClientApi {
                 "Дату ставит сервер, прошлое и будущее с клиента не принимаются."
     )
     @ApiResponse(responseCode = "201", description = "Лимит сохранён")
-    @ApiResponse(responseCode = "400", description = "Тело запроса не прошло проверку", content = @Content)
+    @ApiResponse(responseCode = "400", description = "Тело запроса не прошло проверку",
+        content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+            schema = @Schema(implementation = ProblemDetail.class)))
     @PostMapping("/limits")
     @ResponseStatus(HttpStatus.CREATED)
     LimitRs createLimit(@Valid @RequestBody CreateLimitRq request);
@@ -34,7 +39,9 @@ public interface ClientApi {
             description = "История лимитов, а не одна действующая запись."
     )
     @ApiResponse(responseCode = "200", description = "Список лимитов")
-    @ApiResponse(responseCode = "400", description = "Тело запроса не прошло проверку", content = @Content)
+    @ApiResponse(responseCode = "400", description = "Тело запроса не прошло проверку",
+        content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+            schema = @Schema(implementation = ProblemDetail.class)))
     @GetMapping("/limits/{accountFrom}")
     List<LimitRs> findLimits(@PathVariable @Valid String accountFrom);
 
@@ -43,7 +50,9 @@ public interface ClientApi {
             description = "Транзакции с limit_exceeded = true и лимит, который действовал в момент операции: сумма, дата установления и валюта USD."
     )
     @ApiResponse(responseCode = "200", description = "Список превышений")
-    @ApiResponse(responseCode = "400", description = "Тело запроса не прошло проверку", content = @Content)
+    @ApiResponse(responseCode = "400", description = "Тело запроса не прошло проверку",
+        content = @Content(mediaType = MediaType.APPLICATION_PROBLEM_JSON_VALUE,
+            schema = @Schema(implementation = ProblemDetail.class)))
     @GetMapping("transactions/{accountFrom}/exceeded")
     List<ExceededTransactionRs> findLimitExceededTransactions(@PathVariable @Valid String accountFrom);
 }

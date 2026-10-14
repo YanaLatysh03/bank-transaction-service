@@ -3,10 +3,6 @@ package com.latysh.bank.transactionservice.endtoend;
 import com.github.tomakehurst.wiremock.WireMockServer;
 import com.github.tomakehurst.wiremock.core.WireMockConfiguration;
 import com.latysh.bank.transactionservice.DomainConstants;
-import com.latysh.bank.transactionservice.entity.ExpenseCategory;
-import com.latysh.bank.transactionservice.rq.CreateLimitRq;
-import com.latysh.bank.transactionservice.rq.IncomingTransactionRq;
-import com.latysh.bank.transactionservice.rs.ExceededTransactionRs;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -16,7 +12,7 @@ import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.testcontainers.service.connection.ServiceConnection;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Primary;
-import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.MediaType;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.client.RestTestClient;
@@ -24,12 +20,17 @@ import org.testcontainers.containers.GenericContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
+import tools.jackson.databind.JsonNode;
+import tools.jackson.databind.json.JsonMapper;
+
+import java.nio.charset.StandardCharsets;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.OffsetDateTime;
+import java.time.ZoneId;
+
 import static com.github.tomakehurst.wiremock.client.WireMock.get;
-
-import java.math.BigDecimal;
-import java.time.*;
-import java.util.List;
-
 import static com.github.tomakehurst.wiremock.client.WireMock.okJson;
 import static com.github.tomakehurst.wiremock.client.WireMock.urlPathEqualTo;
 import static org.assertj.core.api.Assertions.assertThat;
@@ -96,12 +97,16 @@ public class CaseOneApiTest {
         send("100.00", "2022-01-13T11:00:00+03:00");
 
         // when
-        List<ExceededTransactionRs> exceeded = http.get()
-            .uri("/api/client/transactions/" + ACCOUNT+ "/exceeded")
+        byte[] raw = http.get()
+            .uri("/api/client/transactions/" + ACCOUNT + "/exceeded")
             .exchange()
             .expectStatus().isOk()
-            .returnResult(new ParameterizedTypeReference<List<ExceededTransactionRs>>() {})
+            .expectBody()
+            .returnResult()
             .getResponseBody();
+
+        JsonNode exceeded = JsonMapper.builder().build()
+            .readTree(new String(raw, StandardCharsets.UTF_8));
 
         // then
         assertThat(exceeded).hasSize(2);
@@ -112,36 +117,49 @@ public class CaseOneApiTest {
     }
 
     private void createLimit(String sum) {
-        http.post().uri("/api/client/limits")
-            .body(new CreateLimitRq(ACCOUNT, ExpenseCategory.PRODUCT, new BigDecimal(sum)))
-            .exchange()
-            .expectStatus().isCreated();
+        post("/api/client/limits", """
+            {
+              "account_from": "%s",
+              "expense_category": "product",
+              "limit_sum": %s
+            }
+            """.formatted(ACCOUNT, sum));
     }
 
     private void send(String sum, String datetime) {
-        http.post().uri("/api/integration/transactions")
-            .body(new IncomingTransactionRq(
-                ACCOUNT,
-                COUNTERPARTY,
-                "KZT",
-                new BigDecimal(sum),
-                ExpenseCategory.PRODUCT,
-                OffsetDateTime.parse(datetime)
-            ))
+        post("/api/integration/transactions", """
+            {
+              "account_from": "%s",
+              "account_to": "%s",
+              "currency_shortname": "KZT",
+              "sum": %s,
+              "expense_category": "product",
+              "datetime": "%s"
+            }
+            """.formatted(ACCOUNT, COUNTERPARTY, sum, datetime));
+    }
+
+    private void post(String uri, String json) {
+        http.post().uri(uri)
+            .contentType(MediaType.APPLICATION_JSON)
+            .body(json)
             .exchange()
             .expectStatus().isCreated();
     }
 
-    private static void assertExceeded(ExceededTransactionRs row, LocalDate day, String sum,
+    private static void assertExceeded(JsonNode row, LocalDate day, String sum,
                                        String limitSum, String limitDatetime) {
-        assertThat(row.accountFrom()).isEqualTo(ACCOUNT);
-        assertThat(row.expenseCategory()).isEqualTo(ExpenseCategory.PRODUCT);
-        assertThat(row.datetime().atZoneSameInstant(MINSK).toLocalDate()).isEqualTo(day);
-        assertThat(row.sum()).isEqualByComparingTo(sum);
-        assertThat(row.limitSum()).isEqualByComparingTo(limitSum);
-        assertThat(row.limitDatetime().toInstant())
+        assertThat(row.path("account_from").asString()).isEqualTo(ACCOUNT);
+        assertThat(row.path("account_to").asString()).isEqualTo(COUNTERPARTY);
+        assertThat(row.path("currency_shortname").asString()).isEqualTo("KZT");
+        assertThat(row.path("expense_category").asString()).isEqualTo("product");
+        assertThat(row.path("sum").decimalValue()).isEqualByComparingTo(sum);
+        assertThat(OffsetDateTime.parse(row.path("datetime").asString())
+            .atZoneSameInstant(MINSK).toLocalDate()).isEqualTo(day);
+        assertThat(row.path("limit_sum").decimalValue()).isEqualByComparingTo(limitSum);
+        assertThat(OffsetDateTime.parse(row.path("limit_datetime").asString()).toInstant())
             .isEqualTo(OffsetDateTime.parse(limitDatetime).toInstant());
-        assertThat(row.limitCurrencyShortname()).isEqualTo("USD");
+        assertThat(row.path("limit_currency_shortname").asString()).isEqualTo("USD");
     }
 
     @TestConfiguration

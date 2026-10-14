@@ -161,7 +161,8 @@ SQL из сервисов не нужно.
   живут на интерфейсе в `controller/api/`, контроллер просто реализует его.
 - **DI** — конструктор через `@RequiredArgsConstructor` (Lombok), без `@Autowired` на полях.
 - **DTO** — records в `rq/`/`rs/`, описание полей на русском в `@Schema`, ограничения
-  jakarta-validation прямо на полях.
+  jakarta-validation прямо на полях. JSON API — snake_case
+  (`spring.jackson.property-naming-strategy=SNAKE_CASE`), категория `product`/`service`.
 - **Деньги** — `BigDecimal`, хранение/сравнение лимитов в USD, округление scale 2 `HALF_UP`.
   Коды валют — ISO в верхнем регистре.
 - **Время** — никогда `LocalDate.now()`/`Instant.now()` в прод-коде: инжектить `Clock`
@@ -173,9 +174,10 @@ SQL из сервисов не нужно.
     имена методов-сценариев в camelCase (`findsLimitWhen...`);
   - репозиториев: `@DataJpaTest` + `@Testcontainers` + `@ServiceConnection`
     (`PostgreSQLContainer("postgres:15")`, `replace = NONE` — гоняется на реальном Postgres);
-  - e2e: `endtoend/` — `@SpringBootTest(RANDOM_PORT)` + `RestTestClient`, внешний API
-    подменяется WireMock через `@DynamicPropertySource` (`frankfurter.base-url`), время —
-    вложенный `AdjustableClock` как `@Primary` бин `Clock`; рядом контейнер `redis:7`.
+  - e2e: `endtoend/` — `@SpringBootTest(RANDOM_PORT)` + `RestTestClient`, тело запросов —
+    сырой JSON из задания (snake_case, `product`/`service`), внешний API подменяется
+    WireMock через `@DynamicPropertySource` (`frankfurter.base-url`), время — вложенный
+    `AdjustableClock` как `@Primary` бин `Clock`; рядом контейнер `redis:7`.
 - Перед завершением задачи запускайте `gradle test` целиком — изолированный запуск
   одного теста не ловит регрессий контекста.
 
