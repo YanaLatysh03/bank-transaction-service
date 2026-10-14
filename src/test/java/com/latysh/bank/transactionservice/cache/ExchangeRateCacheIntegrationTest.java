@@ -37,12 +37,15 @@ class ExchangeRateCacheIntegrationTest {
 
     @Test
     void storesCloseInRedisOnTopOfTheDatabase() {
+        // given
         LocalDate day = LocalDate.of(2022, 1, 2);
 
         assertThat(cache.get("KZT", "USD", day)).isEmpty();
 
+        // when
         cache.put("KZT", "USD", day, new BigDecimal("0.00230000"));
 
+        // then
         assertThat(cache.get("KZT", "USD", day))
             .get()
             .usingComparator(BigDecimal::compareTo)
@@ -52,7 +55,10 @@ class ExchangeRateCacheIntegrationTest {
         assertThat(template.getExpire(RedisExchangeRateCache.key("KZT", "USD", day)))
             .isCloseTo(Duration.ofHours(24).toSeconds(), within(30L));
 
+        // when
         cache.put("EUR", "USD", day, new BigDecimal("1.13000000"));
+
+        // then
         assertThat(cache.get("KZT", "USD", day))
             .get()
             .usingComparator(BigDecimal::compareTo)

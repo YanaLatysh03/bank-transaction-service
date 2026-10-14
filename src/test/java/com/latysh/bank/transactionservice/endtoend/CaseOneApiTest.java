@@ -72,6 +72,7 @@ public class CaseOneApiTest {
 
     @Test
     void returnsJanuary3AndJanuary13ExceededTransactions() {
+        // given
         frankfurter.stubFor(get(urlPathEqualTo("/v2/rate/kzt/usd"))
             .willReturn(okJson("""
                 {"date":"2022-01-02","base":"KZT","quote":"USD","rate":1}
@@ -93,6 +94,7 @@ public class CaseOneApiTest {
         send("100.00", "2022-01-13T10:00:00+03:00");
         send("100.00", "2022-01-13T11:00:00+03:00");
 
+        // when
         List<ExceededTransactionRs> exceeded = http.get()
             .uri("/api/client/transactions/" + ACCOUNT+ "/exceeded")
             .exchange()
@@ -100,6 +102,7 @@ public class CaseOneApiTest {
             .returnResult(new ParameterizedTypeReference<List<ExceededTransactionRs>>() {})
             .getResponseBody();
 
+        // then
         assertThat(exceeded).hasSize(2);
         assertExceeded(exceeded.get(0), LocalDate.of(2022, 1, 3), "600.00",
             "1000.00", "2022-01-01T00:00:00+03:00");

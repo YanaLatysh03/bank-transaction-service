@@ -31,12 +31,15 @@ public class ExchangeRateRepositoryTest {
 
     @Test
     void findsRateForTheExactPairAndDate() {
+        // given
         LocalDate date = LocalDate.parse("2026-03-13");
 
         ExchangeRate saved = repository.saveAndFlush(rate("EUR", "USD", date, "1.08500000"));
 
+        // when
         Optional<ExchangeRate> found = repository.findByBaseAndQuoteAndRateDate("EUR", "USD", date);
 
+        // then
         assertThat(found).isPresent();
         ExchangeRate actual = found.orElseThrow();
         assertThat(actual.getId()).isEqualTo(saved.getId());
@@ -48,39 +51,49 @@ public class ExchangeRateRepositoryTest {
 
     @Test
     void returnsEmptyWhenDateDoesNotMatch() {
+        // given
         LocalDate date = LocalDate.parse("2026-03-13");
 
         repository.saveAndFlush(rate("EUR", "USD", date, "1.08500000"));
 
+        // when
         Optional<ExchangeRate> found = repository.findByBaseAndQuoteAndRateDate("EUR", "USD", date.minusDays(1));
 
+        // then
         assertThat(found).isEmpty();
     }
 
     @Test
     void returnsEmptyWhenBaseDoesNotMatch() {
+        // given
         LocalDate date = LocalDate.parse("2026-03-13");
 
         repository.saveAndFlush(rate("EUR", "USD", date, "1.08500000"));
 
+        // when
         Optional<ExchangeRate> found = repository.findByBaseAndQuoteAndRateDate("KZT", "USD", date);
 
+        // then
         assertThat(found).isEmpty();
     }
 
     @Test
     void returnsEmptyWhenQuoteDoesNotMatch() {
+        // given
         LocalDate date = LocalDate.parse("2026-03-13");
 
         repository.saveAndFlush(rate("EUR", "USD", date, "1.08500000"));
 
+        // when
         Optional<ExchangeRate> found = repository.findByBaseAndQuoteAndRateDate("EUR", "KZT", date);
 
+        // then
         assertThat(found).isEmpty();
     }
 
     @Test
     void findsLatestRateStrictlyBeforeTheDate() {
+        // given
         LocalDate older = LocalDate.parse("2026-03-11");
         LocalDate newer = LocalDate.parse("2026-03-12");
         LocalDate requested = LocalDate.parse("2026-03-13");
@@ -88,10 +101,12 @@ public class ExchangeRateRepositoryTest {
         repository.saveAndFlush(rate("EUR", "USD", older, "1.08000000"));
         ExchangeRate previousClose = repository.saveAndFlush(rate("EUR", "USD", newer, "1.09000000"));
 
+        // when
         Optional<ExchangeRate> found = repository.findFirstByBaseAndQuoteAndRateDateLessThanOrderByRateDateDesc(
             "EUR", "USD", requested
         );
 
+        // then
         assertThat(found).isPresent();
         ExchangeRate actual = found.orElseThrow();
         assertThat(actual.getId()).isEqualTo(previousClose.getId());
@@ -101,18 +116,23 @@ public class ExchangeRateRepositoryTest {
 
     @Test
     void returnsEmptyWhenEveryRateIsOnOrAfterTheDate() {
+        // given
         LocalDate date = LocalDate.parse("2026-03-13");
 
         repository.saveAndFlush(rate("EUR", "USD", date, "1.08500000"));
 
+        // when
         Optional<ExchangeRate> found = repository.findFirstByBaseAndQuoteAndRateDateLessThanOrderByRateDateDesc(
             "EUR", "USD", date.minusDays(1)
         );
+
+        // then
         assertThat(found).isEmpty();
     }
 
     @Test
     void rejectsNonPositiveClose() {
+        // when / then
         assertThatThrownBy(() -> repository.saveAndFlush(
             rate("EUR", "USD", LocalDate.parse("2026-03-13"), "0")
         )).isInstanceOf(DataIntegrityViolationException.class);
@@ -120,8 +140,11 @@ public class ExchangeRateRepositoryTest {
 
     @Test
     void rejectsDuplicatePairAndDate() {
+        // given
         LocalDate date = LocalDate.parse("2026-03-13");
         repository.saveAndFlush(rate("EUR", "USD", date, "1.08500000"));
+
+        // when / then
         assertThatThrownBy(() -> repository.saveAndFlush(rate("EUR", "USD", date, "1.09000000")))
             .isInstanceOf(DataIntegrityViolationException.class);
     }

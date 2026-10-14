@@ -38,25 +38,37 @@ class RedisExchangeRateCacheTest {
 
     @Test
     void returnsEmptyWhenRedisReadFails() {
+        // given
         when(values.get(anyString())).thenThrow(new RedisConnectionFailureException("down"));
 
-        assertThat(cache.get("KZT", "USD", LocalDate.of(2022, 1, 2))).isEmpty();
+        // when
+        var rate = cache.get("KZT", "USD", LocalDate.of(2022, 1, 2));
+
+        // then
+        assertThat(rate).isEmpty();
     }
 
     @Test
     void ignoresWriteFailure() {
+        // given
         doThrow(new RedisConnectionFailureException("down"))
             .when(values).set(anyString(), anyString(), any(Duration.class));
 
+        // when / then
         cache.put("KZT", "USD", LocalDate.of(2022, 1, 2), new BigDecimal("0.00230000"));
     }
 
     @Test
     void dropsUnreadableValue() {
+        // given
         String key = RedisExchangeRateCache.key("KZT", "USD", LocalDate.of(2022, 1, 2));
         when(values.get(key)).thenReturn("not-a-number");
 
-        assertThat(cache.get("KZT", "USD", LocalDate.of(2022, 1, 2))).isEmpty();
+        // when
+        var rate = cache.get("KZT", "USD", LocalDate.of(2022, 1, 2));
+
+        // then
+        assertThat(rate).isEmpty();
         verify(redis).delete(key);
     }
 }

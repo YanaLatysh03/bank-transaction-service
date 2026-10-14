@@ -56,12 +56,15 @@ public class ExchangeRateServiceTest {
 
     @Test
     void convertsSumByCachedRate() {
+        // given
         LocalDate day = LocalDate.of(2022, 1, 2);
         when(exchangeRateCache.get("KZT", "USD", day))
             .thenReturn(Optional.of(new BigDecimal("0.00230000")));
 
+        // when
         BigDecimal sumUsd = service.toUsd("KZT", new BigDecimal("10000.00"), day);
 
+        // then
         assertThat(sumUsd).isEqualByComparingTo("23.00");
         verifyNoInteractions(exchangeRateRepository, client);
         verify(exchangeRateCache, never()).put(any(), any(), any(), any());

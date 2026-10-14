@@ -36,67 +36,83 @@ public class BankTransactionRepositoryTest {
 
     @Test
     void sumsUsdInsideTheMonthInterval() {
+        // given
         OffsetDateTime monthStart = OffsetDateTime.parse("2026-03-01T00:00:00+03:00");
         OffsetDateTime monthEnd = OffsetDateTime.parse("2026-04-01T00:00:00+03:00");
 
         bankTransactionRepository.saveAndFlush(transaction("0000000123", ExpenseCategory.PRODUCT, "100.50", monthStart.plusDays(5), false, null));
         bankTransactionRepository.saveAndFlush(transaction("0000000123", ExpenseCategory.PRODUCT, "40.25", monthStart.plusDays(20), true, null));
 
+        // when
         BigDecimal total = bankTransactionRepository.sumUsd("0000000123", ExpenseCategory.PRODUCT, monthStart, monthEnd);
 
+        // then
         assertThat(total).isEqualByComparingTo("140.75");
     }
 
     @Test
     void includesTransactionAtMonthStart() {
+        // given
         OffsetDateTime monthStart = OffsetDateTime.parse("2026-03-01T00:00:00+03:00");
         OffsetDateTime monthEnd = OffsetDateTime.parse("2026-04-01T00:00:00+03:00");
 
         bankTransactionRepository.saveAndFlush(transaction("0000000123", ExpenseCategory.PRODUCT, "15.00", monthStart, false, null));
 
+        // when
         BigDecimal total = bankTransactionRepository.sumUsd("0000000123", ExpenseCategory.PRODUCT, monthStart, monthEnd);
 
+        // then
         assertThat(total).isEqualByComparingTo("15.00");
     }
 
     @Test
     void excludesTransactionAtMonthEnd() {
+        // given
         OffsetDateTime monthStart = OffsetDateTime.parse("2026-03-01T00:00:00+03:00");
         OffsetDateTime monthEnd = OffsetDateTime.parse("2026-04-01T00:00:00+03:00");
 
         bankTransactionRepository.saveAndFlush(transaction("0000000123", ExpenseCategory.PRODUCT, "15.00", monthEnd, false, null));
 
+        // when
         BigDecimal total = bankTransactionRepository.sumUsd("0000000123", ExpenseCategory.PRODUCT, monthStart, monthEnd);
 
+        // then
         assertThat(total).isNull();
     }
 
     @Test
     void doesNotSumAnotherAccount() {
+        // given
         OffsetDateTime monthStart = OffsetDateTime.parse("2026-03-01T00:00:00+03:00");
         OffsetDateTime monthEnd = OffsetDateTime.parse("2026-04-01T00:00:00+03:00");
 
         bankTransactionRepository.saveAndFlush(transaction("0000000123", ExpenseCategory.PRODUCT, "15.00", monthStart.plusDays(1), false, null));
 
+        // when
         BigDecimal total = bankTransactionRepository.sumUsd("0000000999", ExpenseCategory.PRODUCT, monthStart, monthEnd);
 
+        // then
         assertThat(total).isNull();
     }
 
     @Test
     void doesNotSumAnotherCategory() {
+        // given
         OffsetDateTime monthStart = OffsetDateTime.parse("2026-03-01T00:00:00+03:00");
         OffsetDateTime monthEnd = OffsetDateTime.parse("2026-04-01T00:00:00+03:00");
 
         bankTransactionRepository.saveAndFlush(transaction("0000000123", ExpenseCategory.PRODUCT, "15.00", monthStart.plusDays(1), false, null));
 
+        // when
         BigDecimal total = bankTransactionRepository.sumUsd("0000000123", ExpenseCategory.SERVICE, monthStart, monthEnd);
 
+        // then
         assertThat(total).isNull();
     }
 
     @Test
     void returnsExceededTransactionsOrderedByDatetime() {
+        // given
         OffsetDateTime earlier = OffsetDateTime.parse("2026-03-01T00:00:00+03:00");
         OffsetDateTime later = OffsetDateTime.parse("2026-03-20T00:00:00+03:00");
 
@@ -110,7 +126,11 @@ public class BankTransactionRepositoryTest {
             transaction("0000000123", ExpenseCategory.SERVICE, "50.00", earlier, true, null)
         );
         bankTransactionRepository.saveAndFlush(transaction("0000000123", ExpenseCategory.PRODUCT, "10.00", earlier.plusDays(2), false, limit));
+
+        // when
         List<BankTransaction> exceeded = bankTransactionRepository.findExceededTransactionsByAccountFrom("0000000123");
+
+        // then
         assertThat(exceeded)
             .extracting(BankTransaction::getId)
             .containsExactly(earlierTransaction.getId(), laterTransaction.getId());
@@ -119,6 +139,7 @@ public class BankTransactionRepositoryTest {
     }
     @Test
     void rejectsNegativeSum() {
+        // when / then
         assertThatThrownBy(() -> bankTransactionRepository.saveAndFlush(
             transaction("0000000123", ExpenseCategory.PRODUCT, "-1.00", OffsetDateTime.parse("2026-03-01T00:00:00+03:00"), false, null)
         )).isInstanceOf(DataIntegrityViolationException.class);

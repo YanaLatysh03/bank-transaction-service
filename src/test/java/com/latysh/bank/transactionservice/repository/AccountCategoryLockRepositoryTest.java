@@ -44,8 +44,10 @@ public class AccountCategoryLockRepositoryTest {
 
     @Test
     void insertsLockRowForAccountAndCategory() {
+        // when
         accountCategoryLockRepository.insertIfAbsent("0000000123", "product");
 
+        // then
         Optional<AccountCategoryLock> found = accountCategoryLockRepository.findById(
             new AccountCategoryLockId("0000000123", ExpenseCategory.PRODUCT)
         );
@@ -58,24 +60,33 @@ public class AccountCategoryLockRepositoryTest {
 
     @Test
     void insertsTheSamePairOnlyOnce() {
+        // when
         accountCategoryLockRepository.insertIfAbsent("0000000123", "product");
         accountCategoryLockRepository.insertIfAbsent("0000000123", "product");
 
+        // then
         assertThat(accountCategoryLockRepository.count()).isEqualTo(1);
     }
 
     @Test
     void insertsAnotherCategoryAsASeparateRow() {
+        // when
         accountCategoryLockRepository.insertIfAbsent("0000000123", "product");
         accountCategoryLockRepository.insertIfAbsent("0000000123", "service");
 
+        // then
         assertThat(accountCategoryLockRepository.count()).isEqualTo(2);
     }
 
     @Test
     void locksTheInsertedRow() {
+        // given
         accountCategoryLockRepository.insertIfAbsent("0000000123", "product");
+
+        // when
         AccountCategoryLock locked = accountCategoryLockRepository.lock("0000000123", ExpenseCategory.PRODUCT);
+
+        // then
         assertThat(locked).isNotNull();
         assertThat(locked.getId().getAccountFrom()).isEqualTo("0000000123");
         assertThat(locked.getId().getExpenseCategory()).isEqualTo(ExpenseCategory.PRODUCT);
@@ -83,25 +94,35 @@ public class AccountCategoryLockRepositoryTest {
 
     @Test
     void returnsNullWhenLockRowIsAbsent() {
+        // when
         AccountCategoryLock locked = accountCategoryLockRepository.lock("0000000123", ExpenseCategory.PRODUCT);
+
+        // then
         assertThat(locked).isNull();
     }
 
     @Test
     void doesNotLockAnotherCategory() {
+        // given
         accountCategoryLockRepository.insertIfAbsent("0000000123", "product");
+
+        // when
         AccountCategoryLock locked = accountCategoryLockRepository.lock("0000000123", ExpenseCategory.SERVICE);
+
+        // then
         assertThat(locked).isNull();
     }
 
     @Test
     void rejectsUnknownCategory() {
+        // when / then
         assertThatThrownBy(() -> accountCategoryLockRepository.insertIfAbsent("0000000123", "goods"))
             .isInstanceOf(DataIntegrityViolationException.class);
     }
 
     @Test
     void lockWaitsForTheRowHeldByAnotherTransaction() throws Exception {
+        // given
         TransactionTemplate transaction = new TransactionTemplate(transactionManager);
         transaction.setPropagationBehavior(TransactionTemplate.PROPAGATION_REQUIRES_NEW);
         transaction.executeWithoutResult(status -> accountCategoryLockRepository.insertIfAbsent("0000000123", "product"));
@@ -127,11 +148,13 @@ public class AccountCategoryLockRepositoryTest {
         assertThat(locked.await(5, TimeUnit.SECONDS)).isTrue();
         assertThat(holderFailure.get()).isNull();
 
+        // when / then
         assertThatThrownBy(() -> transaction.executeWithoutResult(status -> {
             jdbcTemplate.execute("SET LOCAL lock_timeout = '300ms'");
             accountCategoryLockRepository.lock("0000000123", ExpenseCategory.PRODUCT);
         })).isInstanceOf(CannotAcquireLockException.class);
 
+        // then
         release.countDown();
         holder.join(5_000);
         assertThat(holder.isAlive()).isFalse();
